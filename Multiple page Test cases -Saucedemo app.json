@@ -1,0 +1,296 @@
+{
+  "name": "Multiple page Test cases -Saucedemo app",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        -800
+      ],
+      "id": "1a178630-faed-49bd-9cc9-32cb6e71823b",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "BEipbvOQlFdaVrBn",
+          "name": "Groq account 4"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -64
+      ],
+      "id": "c0621e82-5ce8-4539-8bae-9e5fb91751ba",
+      "placeholder": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1408,
+        -960
+      ],
+      "id": "59d36bbf-8868-4f09-bd07-632f322edb17",
+      "name": "Start Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { module_name: \"Login Page\", url: \"https://www.saucedemo.com/\" } },\n  { json: { module_name: \"Inventory / Products Page\", url: \"https://www.saucedemo.com/inventory.html\" } },\n  { json: { module_name: \"Shopping Cart Page\", url: \"https://www.saucedemo.com/cart.html\" } },\n  { json: { module_name: \"Checkout Step One Page\", url: \"https://www.saucedemo.com/checkout-step-one.html\" } }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        -960
+      ],
+      "id": "ea62c94d-b320-4450-8686-3636272100fe",
+      "name": "Store Pages and URL"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -816,
+        -944
+      ],
+      "id": "73f83054-180d-4470-9397-b2cd732637b3",
+      "name": "Generate Test Cases for Each Page loop"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate comprehensive test cases for the SauceDemo {{ $json.module_name }} ({{ $json.url }}) covering happy path scenarios, edge cases, input validation, and expected UI behaviors.\n\nReturn ONLY a JSON array with objects containing:\n\"Test_ID\", \"Scenario\", \"Steps\", \"Expected_Result\", \"Status\"",
+        "options": {
+          "systemMessage": "You are a Senior QA Automation Engineer. Output strictly valid JSON without markdown tags."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -528,
+        -960
+      ],
+      "id": "03c10809-d9e5-4ed7-b888-5508078146e7",
+      "name": "Generate Test Cases Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "let rawOutput = $input.first().json.output || '';\n\n// Clean up markdown code fences (```json ... ```) if present\nrawOutput = rawOutput.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n\n// Fix truncated JSON if the LLM output was cut off mid-string\nif (!rawOutput.endsWith(']')) {\n  const lastObjectEnd = rawOutput.lastIndexOf('}');\n  if (lastObjectEnd !== -1) {\n    rawOutput = rawOutput.substring(0, lastObjectEnd + 1) + ']';\n  }\n}\n\nlet parsedData = [];\ntry {\n  parsedData = typeof rawOutput === 'string' ? JSON.parse(rawOutput) : rawOutput;\n} catch (e) {\n  // Fallback: If array parsing fails, return empty array to prevent complete workflow failure\n  console.error(\"Failed to parse JSON:\", e);\n}\n\nreturn parsedData.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -624
+      ],
+      "id": "1e98d7c8-4523-46d4-bfa2-fc188bafd3d9",
+      "name": "Formatted Output to store in Spreadsheet"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1EUUvex3YRPCVo_Dpj-Y8WQmOUkBJmcprKaJKwt8nAi0",
+          "mode": "list",
+          "cachedResultName": "SauseDemo Test Cases",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EUUvex3YRPCVo_Dpj-Y8WQmOUkBJmcprKaJKwt8nAi0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Generate Test Cases for Each Page loop').item.json.module_name }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Test ID": "={{ $json.Test_ID }}",
+            "Scenario": "={{ $json.Scenario }}",
+            "Steps": "={{ $json.Steps }}",
+            "Expected Result": "={{ $json.Expected_Result }}",
+            "Status": "={{ $json.Status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Test ID",
+              "displayName": "Test ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scenario",
+              "displayName": "Scenario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Steps",
+              "displayName": "Steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Expected Result",
+              "displayName": "Expected Result",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -96,
+        -624
+      ],
+      "id": "ca970ae1-85bf-4704-bae3-12264db0d3b6",
+      "name": "Append Output data in Google sheet.",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3LXHeD6fjilLn2Bo",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Test Cases Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        []
+      ]
+    },
+    "Start Workflow": {
+      "main": [
+        [
+          {
+            "node": "Store Pages and URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Pages and URL": {
+      "main": [
+        [
+          {
+            "node": "Generate Test Cases for Each Page loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Test Cases for Each Page loop": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Generate Test Cases Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Test Cases Agent": {
+      "main": [
+        [
+          {
+            "node": "Formatted Output to store in Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatted Output to store in Spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "Append Output data in Google sheet.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Output data in Google sheet.": {
+      "main": [
+        [
+          {
+            "node": "Generate Test Cases for Each Page loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c010249d-93ca-45fb-8d46-07de946c2a34",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c85668368b833133bd8d1b917a539f805db9206c682c4a5d445351666e86b4d"
+  },
+  "nodeGroups": [],
+  "id": "HuFpmIqBjmc7DLr7",
+  "tags": []
+}
