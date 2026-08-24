@@ -1,0 +1,179 @@
+Test Plan – Wingify Login Module
+
+Document Version: 1.0
+Prepared By: [QA Lead]
+Date: 22‑Aug‑2026
+
+1. Scope & Objectives
+
+	 Item 	 Description
+
+	 Scope 	 End‑to‑end functional, UI, usability, performance, and security testing of the Login module of the Wingify platform (web application). Includes login, logout, “Remember Me”, password‑reset, and account‑lockout flows.
+	 Out of Scope 	 Integration with third‑party SSO providers (OAuth, SAML) – covered in separate SSO test plan.
+Analytics tracking and A/B‑testing scripts.
+	 Objectives 	 1. Verify that only authorized users can gain access.
+2. Ensure the UI meets design and accessibility specifications.
+3. Validate error handling for all negative scenarios.
+4. Confirm that security controls (rate‑limiting, CSRF, XSS, password policies) work as intended.
+5. Provide a baseline automated regression suite for future releases.
+
+2. Features to be Tested
+
+	 Feature 	 Test Scenarios (examples)
+
+	 Valid Login 	 • Correct username/email + password → successful authentication.
+• Login with “Remember Me” – persistent session after browser restart.
+• Login from multiple browsers/devices simultaneously.
+	 Invalid Login 	 • Wrong password (case‑sensitive).
+• Non‑existent user ID.
+• Empty username/password fields.
+• SQL‑injection payloads in login fields.
+• XSS payloads in username/email field.
+	 Account Lockout 	 • 5 consecutive failed attempts → account locked.
+• Locked account cannot login even with correct credentials.
+• Auto‑unlock after configured timeout (e.g., 30 min).
+	 Password Reset 	 • “Forgot password” link → email with reset token.
+• Reset token expiration (valid/expired).
+• Reset with weak password (policy violation).
+• Reset with reused previous password (if policy enforced).
+	 Logout 	 • Click “Logout” → session terminated, protected pages redirect to login.
+• Browser back button after logout does not show cached authenticated pages.
+	 UI Validation 	 • Layout, fonts, colors, spacing per design system.
+• Responsive behavior (desktop, tablet, mobile).
+• Accessibility (WCAG 2.1 AA) – ARIA labels, focus order, screen‑reader announcements.
+	 Security Checks 	 • CSRF token presence & validation.
+• HTTPS enforcement, HSTS header.
+• Secure cookie attributes (HttpOnly, Secure, SameSite).
+• Brute‑force protection (rate limiting, captcha after N attempts).
+• Password hashing algorithm verification (e.g., bcrypt/argon2).
+	 Performance 	 • Login response time ≤ 1 s under normal load (100 concurrent users).
+• Spike test – 500 concurrent login attempts, observe degradation.
+	 Internationalization 	 • UI labels in supported locales (EN, FR, DE, ES).
+• Validation messages correctly localized.
+	 Compatibility 	 • Supported browsers: Chrome, Firefox, Edge, Safari (latest two versions).
+• OS: Windows 10/11, macOS 13+, iOS 16+, Android 13+.
+
+3. Features Not to be Tested
+
+- Single Sign‑On (SSO) integrations (OAuth, SAML, OpenID Connect).
+- Two‑Factor Authentication (2FA) – covered in the separate 2FA test plan.
+- Backend admin user management (create/delete users) – not part of the public login flow.
+- Analytics / tracking scripts (e.g., Google Analytics, Mixpanel).
+- Email service provider reliability – only token receipt is validated; email delivery infrastructure is out of scope.
+
+4. Test Strategy
+
+4.1 Overall Approach
+
+	 Type 	 Description
+
+	 Manual Testing 	 Exploratory, UI/UX, accessibility, ad‑hoc security checks, and defect verification.
+	 Automation 	 Regression, smoke, and performance scripts. Run on each build (nightly) and on PR merges.
+	 Tooling 	 • Selenium WebDriver (Java) – UI functional automation.
+• TestNG – test orchestration, data‑driven tests.
+• Cucumber (BDD) – readable feature files for business stakeholders.
+• OWASP ZAP – automated security scans (XSS, CSRF, injection).
+• JMeter – load & stress testing of login endpoint.
+• axe‑core (integrated with Selenium) – accessibility testing.
+• Allure – test reporting.
+	 Test Levels 	 Unit (covered by dev), Integration (API), System (login UI), Acceptance (UAT). This plan focuses on System & Acceptance levels.
+	 Test Data Management 	 • Pre‑seeded test users (valid, locked, password‑policy edge cases).
+• Dynamic email inbox (MailHog) for password‑reset token retrieval.
+• Data‑driven CSV/JSON files for invalid credential matrix.
+	 Version Control 	 Test scripts stored in GitHub `wingify-qa/login-tests` repository; branch strategy follows GitFlow.
+	 Continuous Integration 	 Jenkins pipeline: `checkout → compile → unit‑test → UI‑automation → security‑scan → report → archive`.
+
+4.2 Test Types & Coverage
+
+	 Test Type 	 % of Total Tests 	 Tools
+
+	 Functional (positive/negative) 	 45% 	 Selenium, TestNG
+	 UI/UX & Accessibility 	 15% 	 Selenium + axe‑core, manual checklists
+	 Security (static + dynamic) 	 20% 	 OWASP ZAP, manual pen‑test checklist
+	 Performance/Load 	 10% 	 JMeter
+	 Regression (smoke) 	 10% 	 Selenium (smoke suite)
+
+5. Entry & Exit Criteria
+
+5.1 Entry Criteria
+
+- Requirements & design documents approved and baseline UI mock‑ups available.
+- Development branch `login-module` merged to `develop` and code compiled without build errors.
+- Test environment (see Section 6) provisioned and baseline data loaded.
+- Test data (users, email inbox) prepared and validated.
+- Automation framework set up, Selenium Grid (or cloud service) operational.
+- Test cases written, peer‑reviewed, and baseline test data attached.
+
+5.2 Exit Criteria
+
+- Functional: All test cases executed; ≥ 95 % passed; remaining failures logged, triaged, and resolved or accepted with risk justification.
+- Security: No critical/high severity findings remain open; medium findings mitigated or documented with mitigation plan.
+- Performance: Login response time ≤ 1 s for 95 % of requests under target load; no errors > 0.5 % error rate.
+- Regression: Smoke suite passes on the target build in all supported browsers.
+- Documentation: Test execution report, defect summary, and final test sign‑off prepared.
+- Stakeholder Sign‑off: QA Lead, Product Owner, and Security Lead have approved the test results.
+
+6. Test Environment Setup
+
+	 Component 	 Specification 	 Notes
+
+	 OS 	 Windows Server 2022 (for Selenium Grid nodes) & macOS 14 (for Safari) 	 Separate nodes per browser.
+	 Browsers 	 Chrome 124, Firefox 124, Edge 124, Safari 17 (latest stable) 	 Enable headless mode for CI runs.
+	 Application Server 	 Node.js 20 (Express) – same version as production 	 Deploy `wingify-login` WAR/Docker image.
+	 Database 	 PostgreSQL 15 – test schema `logintestdb` 	 Refresh nightly from sanitized prod dump.
+	 Email Service 	 MailHog (SMTP on localhost:1025) – captures outgoing reset emails.
+	 Network 	 Isolated VPC; firewall allows HTTP/HTTPS (80/443) and SMTP (1025).
+	 Test Data 	 Pre‑populated users:
+• `validuser@example.com` / `Password123!`
+• `lockeduser@example.com` (locked)
+• `pwresetuser@example.com` (active)
+• `invaliduser@example.com` (non‑existent)
+	 Selenium Grid 	 Hub + 4 nodes (Chrome, Firefox, Edge, Safari) – Docker containers.
+	 CI Server 	 Jenkins 2.462, agents with Docker & Java 21 installed.
+	 Monitoring 	 Grafana + Prometheus for response‑time metrics during load tests.
+	 Security Tools 	 OWASP ZAP daemon running on port 8080, integrated with Jenkins.
+
+Environment provisioning scripts (Terraform + Ansible) are versioned in `infra/wingify-login-env`. Execution documented in the “Environment Setup” wiki page.
+
+7. Risks & Mitigation
+
+	 Risk 	 Impact 	 Probability 	 Mitigation
+
+	 Flaky UI tests due to dynamic elements (e.g., rotating banners). 	 Delayed test cycles, false failures. 	 Medium 	 Use explicit waits, stable locators (data‑test‑id), and mock/stub external UI components where possible.
+	 Email delivery latency causing password‑reset token retrieval failures. 	 Test failures in reset flow. 	 Low 	 Use local MailHog; configure short token expiry for test environment.
+	 Third‑party CAPTCHA interfering with automation. 	 Automation blocked. 	 Low 	 Disable CAPTCHA in test config or use test keys that always pass.
+	 Performance test affecting shared environment (resource contention). 	 Skewed metrics, environment instability. 	 Medium 	 Reserve dedicated load‑test VM; schedule performance runs off‑peak.
+	 Security scan false positives (e.g., CSRF token flagged). 	 Wasted effort. 	 Low 	 Maintain a whitelist of known safe patterns; manually verify flagged items.
+	 Browser version drift causing incompatibility with Selenium drivers. 	 Test failures on CI. 	 Medium 	 Pin driver versions; regularly update Selenium Grid image and run compatibility matrix.
+	 Data leakage of real user credentials in test data. 	 Compliance breach. 	 Low 	 Use only synthetic test accounts; mask any production data before import.
+
+8. Deliverables
+
+	 Deliverable 	 Description 	 Owner 	 Due
+
+	 Test Plan Document (this file) 	 High‑level plan, scope, strategy. 	 QA Lead 	 22‑Aug‑2026
+	 Test Cases Specification 	 Detailed functional, UI, security, performance test cases (TestRail). 	 QA Engineers 	 29‑Aug‑2026
+	 Automation Scripts Repository 	 Selenium‑Java/TestNG source code, Cucumber feature files. 	 Automation Engineer 	 05‑Sep‑2026
+	 Test Data Package 	 CSV/JSON files, user seed scripts, MailHog config. 	 Data Engineer 	 05‑Sep‑2026
+	 Test Execution Report 	 Summary of execution, pass/fail stats, defect list. 	 QA Lead 	 Within 2 days post‑execution
+	 Defect Log 	 JIRA tickets linked to failed test cases. 	 QA Engineer 	 Ongoing
+	 Security Scan Report 	 OWASP ZAP findings, risk rating, remediation status. 	 Security Analyst 	 With Execution Report
+	 Performance Test Report 	 JMeter results, response‑time graphs, bottleneck analysis. 	 Performance Engineer 	 With Execution Report
+	 Accessibility Report 	 axe‑core results, WCAG compliance score. 	 QA Engineer 	 With Execution Report
+	 Test Sign‑off Sheet 	 Stakeholder approvals. 	 Product Owner, QA Lead, Security Lead 	 After Exit Criteria met
+	 Environment Setup Guide 	 Terraform/Ansible scripts, step‑by‑step provisioning instructions. 	 DevOps 	 01‑Sep‑2026
+	 Regression Smoke Suite 	 Minimal set of automated tests to be run on every build. 	 Automation Engineer 	 12‑Sep‑2026
+
+Appendices
+
+- A. Glossary – definitions of terms such as “CSRF”, “Rate Limiting”, “WCAG”.
+- B. Reference Documents – Requirement Spec (REQ‑00123), UI Mock‑ups (Figma link), Security Policy (SEC‑004).
+- C. Test Case Templates – link to shared TestRail template.
+
+Prepared by:
+[Name] – QA Lead, Wingify
+Approved by:
+[Name] – Product Owner
+[Name] – Security Lead
+
+End of Test Plan
