@@ -1,0 +1,221 @@
+{
+  "name": "Generate Test cases -Wingify login",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -208
+      ],
+      "id": "bee1a66c-bd03-4c5b-b2b7-ca63d8e740c0",
+      "name": "Start Workflow"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "e079efe0-faf1-4e32-94b8-2d2766ce3787",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "BEipbvOQlFdaVrBn",
+          "name": "Groq account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate comprehensive test cases for the Wingify (app.vwo.com)covering happy path scenarios, invalid inputs, edge cases, and user interactions.\n\nReturn ONLY a JSON array with objects containing:\n\"Test_ID\", \"Scenario\", \"Steps\", \"Expected_Result\", \"Status\"",
+        "options": {
+          "systemMessage": "You are a Senior QA Automation Engineer. Output strictly valid JSON without markdown tags"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -96,
+        -208
+      ],
+      "id": "e6e834ff-5392-4f8e-a094-04c09d3ddac8",
+      "name": "Generate Wingify Login Test cases"
+    },
+    {
+      "parameters": {
+        "jsCode": "let rawOutput = $input.first().json.output || '';\n\n// Clean up markdown code fences (```json ... ```) if present\nrawOutput = rawOutput.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n\n// Fix truncated JSON if the LLM output was cut off mid-string\nif (!rawOutput.endsWith(']')) {\n  const lastObjectEnd = rawOutput.lastIndexOf('}');\n  if (lastObjectEnd !== -1) {\n    rawOutput = rawOutput.substring(0, lastObjectEnd + 1) + ']';\n  }\n}\n\nlet parsedData = [];\ntry {\n  parsedData = typeof rawOutput === 'string' ? JSON.parse(rawOutput) : rawOutput;\n} catch (e) {\n  // Fallback: If array parsing fails, return empty array to prevent complete workflow failure\n  console.error(\"Failed to parse JSON:\", e);\n}\n\nreturn parsedData.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        -208
+      ],
+      "id": "7532e946-b67f-4fa4-8ddd-d463c1bb97b2",
+      "name": "Formatted Output"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZqzmqF-rEotDCAuL4ACybeapTuwszALCxH_hJojdvnE",
+          "mode": "list",
+          "cachedResultName": "Wingify Test Cases",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZqzmqF-rEotDCAuL4ACybeapTuwszALCxH_hJojdvnE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1135324930,
+          "mode": "list",
+          "cachedResultName": "wingify Login page",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZqzmqF-rEotDCAuL4ACybeapTuwszALCxH_hJojdvnE/edit#gid=1135324930"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Test ID": "={{ $json.Test_ID }}",
+            "Scenario": "={{ $json.Scenario }}",
+            "Steps": "={{ $json.Steps }}",
+            "Expected Result": "={{ $json.Expected_Result }}",
+            "Status": "={{ $json.Status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Test ID",
+              "displayName": "Test ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scenario",
+              "displayName": "Scenario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Steps",
+              "displayName": "Steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Expected Result",
+              "displayName": "Expected Result",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        80,
+        48
+      ],
+      "id": "0a374523-21ca-47b0-936e-6402441dd685",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3LXHeD6fjilLn2Bo",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start Workflow": {
+      "main": [
+        [
+          {
+            "node": "Generate Wingify Login Test cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Wingify Login Test cases",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Wingify Login Test cases": {
+      "main": [
+        [
+          {
+            "node": "Formatted Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatted Output": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a525e593-b43c-49d7-94d9-0241e72d721b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c85668368b833133bd8d1b917a539f805db9206c682c4a5d445351666e86b4d"
+  },
+  "nodeGroups": [],
+  "id": "GZkZPvRuVHNICK7M",
+  "tags": []
+}
