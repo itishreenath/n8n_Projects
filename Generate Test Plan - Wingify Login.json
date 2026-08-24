@@ -1,0 +1,158 @@
+{
+  "name": "Generate Test Plan - Wingify Login",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -176
+      ],
+      "id": "fc257292-2035-4135-b1a4-9202a3cf3ccd",
+      "name": "Start Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a detailed test plan for the Wingify Login module.\nInclude:\n1. Scope and objectives\n2. Features to be tested (valid login, invalid login, password reset, UI validation, security checks)\n3. Features not to be tested\n4. Test strategy (manual + automation, tools like Selenium/Java)\n5. Entry and exit criteria\n6. Test environment setup\n7. Risks and mitigation\n8. Deliverables\nMake it structured with clear headings and bullet points.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -176,
+        -176
+      ],
+      "id": "631e7b3a-eb8a-48a2-a1e2-fa63f0a8ad0d",
+      "name": "AI Generate Test Plan"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input text from the AI Agent node\nlet input = $json.output || \"\";\n\nlet cleanedText = input\n  // 1. Remove horizontal rules (--- or ***)\n  .replace(/^[ \\t]*[\\-*_]{3,}[ \\t]*$/gm, '')\n  // 2. Remove Markdown headers (#, ##, ###, etc.)\n  .replace(/^#{1,6}\\s+/gm, '')\n  // 3. Remove bold and italic syntax (**text**, *text*, __text__, _text_)\n  .replace(/(\\*\\*|__)(.*?)\\1/g, '$2')\n  .replace(/(\\*|_)(.*?)\\1/g, '$2')\n  // 4. Remove Markdown table syntax (| and - delimiters)\n  .replace(/^[ \\t]*\\|?[:\\-\\s|]+\\|[ \\t]*$/gm, '') // Table header separator lines\n  .replace(/\\|/g, '\\t')                          // Replace column bars with tabs for neat spacing\n  // 5. Convert HTML line breaks to standard newlines\n  .replace(/<br\\s*\\/?>/gi, '\\n')\n  // 6. Clean up trailing line spaces and excessive blank lines\n  .replace(/[ \\t]+$/gm, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nreturn {\n  test_plan_text: cleanedText\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        -176
+      ],
+      "id": "e5019e91-110e-47fb-83b8-0762ec0007f1",
+      "name": "Format Test Plan Output"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ $json.test_plan_text }}",
+        "name": "Wingify Test plan",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        304,
+        -176
+      ],
+      "id": "c499701c-2eb1-4340-a273-a2c5935c687f",
+      "name": "Store Wingify Test Plan",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Wxh4lkNZnx4HRbc1",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        32
+      ],
+      "id": "2bb2d10a-e61f-44e8-b696-e3e7899764b1",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "BEipbvOQlFdaVrBn",
+          "name": "Groq account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Generate Test Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Generate Test Plan": {
+      "main": [
+        [
+          {
+            "node": "Format Test Plan Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Test Plan Output": {
+      "main": [
+        [
+          {
+            "node": "Store Wingify Test Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Generate Test Plan",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e65fad0e-e145-431d-9a7e-b7222fc52e1f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c85668368b833133bd8d1b917a539f805db9206c682c4a5d445351666e86b4d"
+  },
+  "nodeGroups": [],
+  "id": "rVlP62A7bZJsMiYz",
+  "tags": []
+}
